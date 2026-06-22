@@ -68,6 +68,7 @@
   .row .v .fin{font-weight:600;}
   .good{color:var(--good);} .bad{color:var(--bad);}
   .warn{color:var(--warn);} .over{color:var(--bad); font-weight:600;}
+  .mul{font-size:11px; color:var(--accent); margin-left:3px; font-variant-numeric:tabular-nums;}
 
   /* 配置数ステッパ（カード見出し） */
   .placed{margin-left:auto; display:inline-flex; align-items:center; gap:4px; flex-shrink:0;}
@@ -550,11 +551,21 @@ function cls(metric, base, val){
   const better = higherGood ? val>base : val<base;
   return better ? "good" : "bad";
 }
-function valCell(metric, base, val, suffix){
+// 倍率（基礎→補正後の比）を ×1.5 等で表示
+function fmtMul(x){
+  if(!isFinite(x)) return "";
+  return Number(x.toPrecision(4)).toLocaleString(undefined,{maximumFractionDigits:4});
+}
+function mulTag(base, val){
+  if(base===0 || base===val) return "";
+  return ` <span class="mul">×${fmtMul(val/base)}</span>`;
+}
+function valCell(metric, base, val, suffix, showMul){
   suffix=suffix||"";
   if(base===val) return `<span class="fin">${fmt(val)}${suffix}</span>`;
   return `<span class="base">${fmt(base)}${suffix}</span><span class="arr">→</span>`+
-         `<span class="fin ${cls(metric,base,val)}">${fmt(val)}${suffix}</span>`;
+         `<span class="fin ${cls(metric,base,val)}">${fmt(val)}${suffix}</span>`+
+         (showMul?mulTag(base,val):"");
 }
 // rateFn(x) -> {base, val}（個/秒の基礎・補正後）。/秒 行を併記。caps があれば運搬上限で着色。
 function lineList(metric, list, rateFn, caps){
@@ -563,7 +574,7 @@ function lineList(metric, list, rateFn, caps){
     const rt=rateFn(x);
     const rateHtml = caps ? convRateCell(rt.base,rt.val,caps) : rateCell(metric,rt.base,rt.val);
     return `<div class="row"><span class="k">${nm(x.name)}</span><span></span>`+
-      `<span class="v">${valCell(metric,x.base,x.val)}`+
+      `<span class="v">${valCell(metric,x.base,x.val,"",true)}`+
       `<div class="rate2">${rateHtml} /秒</div></span></div>`;
   }).join("");
 }
@@ -585,7 +596,7 @@ function convRateCell(base, val, caps){
   const c=convClass(val,caps);
   if(base===val) return `<span class="fin ${c}">${fmtRate(val)}</span>`;
   return `<span class="base">${fmtRate(base)}</span><span class="arr">→</span>`+
-         `<span class="fin ${c}">${fmtRate(val)}</span>`;
+         `<span class="fin ${c}">${fmtRate(val)}</span>`+mulTag(base,val);
 }
 // 材料と買取に同名資源があれば差引（買取 単価×生成個数 − 材料消費）を表示
 function netRows(item, r, n){
@@ -670,8 +681,8 @@ function renderItems(){
         <div class="ch"><span class="title">${nm(item.name)}</span>${item.cat==="バフ"?'<span class="cat">バフ</span>':""}
           <span class="placed"><span class="pl-lb">配置</span><button data-pl="dec" data-id="${item.id}">−</button><span class="pn">${n}</span><button data-pl="inc" data-id="${item.id}">＋</button></span></div>
         ${item.unlock?`<div class="unlock">解放: ${item.unlock}</div>`:""}
-        <div class="row"><span class="k">生成個数</span><span></span><span class="v">${valCell("output",item.output,r.output)}</span></div>
-        <div class="row"><span class="k">所要時間</span><span></span><span class="v">${valCell("time",item.time,r.time,"秒")}</span></div>
+        <div class="row"><span class="k">生成個数</span><span></span><span class="v">${valCell("output",item.output,r.output,"",true)}</span></div>
+        <div class="row"><span class="k">所要時間</span><span></span><span class="v">${valCell("time",item.time,r.time,"秒",true)}</span></div>
         <div class="row rate"><span class="k">生産速度</span><span></span><span class="v">${convRateCell(baseRate,valRate,caps)} 個/秒</span></div>
         <div class="sub-h">材料消費 <span class="unit">(消費/秒)</span></div>${lineList("material",r.materials, x=>({base:x.base/item.time*n, val:x.val/r.time*n}))}
         <div class="sub-h">買取価格 <span class="unit">(取得/秒)</span></div>${lineList("sell",r.sell, x=>({base:x.base*item.output/item.time*n, val:x.val*r.output/r.time*n}))}

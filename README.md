@@ -4,7 +4,7 @@
 ON/OFF・重ねがけ・配置数で切り替えると、全レシピの
 **生成個数 / 所要時間 / 生産速度 / 材料消費 / 買取価格** が補正後の値で一覧表示されます。
 
-🔗 **公開ページ**: `https://kiyonakanata.github.io/lwf-calc/`（GitHub Pages）
+🔗 **公開ページ**: <https://kiyonakanata.github.io/lwf-calc/>（GitHub Pages）
 
 
 ## 対象バージョン
