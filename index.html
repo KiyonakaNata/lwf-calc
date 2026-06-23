@@ -47,6 +47,23 @@
   .grp{font-size:11px; color:var(--sub); margin:14px 0 6px; padding-bottom:3px; border-bottom:1px solid var(--line); text-transform:uppercase; letter-spacing:.04em;}
   .grp:first-child{margin-top:0;}
   .ctrl{display:flex; gap:8px; margin-bottom:10px;}
+
+  /* 適用順（取得順） */
+  #order{margin-bottom:12px;}
+  .ord-empty{font-size:11px; color:var(--sub); background:var(--panel2); border:1px dashed var(--line);
+    border-radius:6px; padding:8px 10px; line-height:1.5;}
+  .ord-h{font-size:11px; color:var(--sub); margin:0 0 6px; letter-spacing:.03em;}
+  .ord-row{display:flex; align-items:center; gap:8px; padding:5px 8px; margin-bottom:4px;
+    background:var(--accent-bg); border:1px solid var(--accent); border-radius:6px;}
+  .ord-n{width:18px; height:18px; flex-shrink:0; text-align:center; line-height:18px; font-size:11px;
+    font-weight:700; background:var(--accent); color:#10101a; border-radius:50%;}
+  .ord-nm{flex:1; font-size:12px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .ord-x{color:var(--sub);}
+  .ord-btns{display:flex; gap:3px; flex-shrink:0;}
+  .ord-btns button{width:22px; height:22px; border:1px solid var(--line); background:var(--panel);
+    color:var(--text); border-radius:5px; cursor:pointer; font-size:10px; line-height:1; padding:0;}
+  .ord-btns button:hover:not(:disabled){border-color:var(--accent);}
+  .ord-btns button:disabled{opacity:.3; cursor:default;}
   .btn{background:var(--accent); color:#10101a; border:none; border-radius:6px; padding:8px 14px; font-weight:600; cursor:pointer;}
   .btn.ghost{background:var(--line); color:var(--text);}
 
@@ -126,6 +143,7 @@
     <div class="ctrl">
       <button class="btn ghost" id="btn-clear">全部0に</button>
     </div>
+    <div id="order"></div>
     <div id="skills"></div>
   </div>
 
@@ -412,6 +430,7 @@ const SAMPLE = {
 /* ===== 状態 ===== */
 let DATA = clone(SAMPLE);
 const counts = {};                 // { skillId: 重ねがけ回数 }
+const order = [];                  // 取得順（先頭から逐次適用）。active な skillId を保持
 const placed = {};                 // { itemId: 配置数（未設定は1扱い）}
 function pcount(id){ return placed[id]==null ? 1 : placed[id]; }
 const CONV_BASE = { c10:10, c40:40 };   // 運搬上限（水流/激流, 個/秒）
@@ -435,103 +454,75 @@ function applicable(skill, item){
   if(sc.startsWith("items:"))    return sc.slice(6).split(",").includes(item.name);
   return false;
 }
-function activeOps(item){
-  const ops=[];
-  DATA.skills.forEach(s=>{
-    const c=counts[s.id]||0;
-    if(c<=0 || !applicable(s,item)) return;
-    (s.effects && s.effects.ops || []).forEach(op=>ops.push({op,count:c}));
-  });
-  return ops;
-}
-function compute(item){
-  const ops=activeOps(item);
-
-  /* 製造数・所要時間 */
-  let outMul=1,outAdd=0,timeMul=1;
-  ops.forEach(({op,count})=>{
-    if(op.target==="output"){
-      if(op.op==="mul") outMul*=Math.pow(op.value,count);
-      else if(op.op==="add") outAdd+=op.value*count;
-    }else if(op.target==="time"){
-      if(op.op==="mul") timeMul*=Math.pow(op.value,count);
-      else if(op.op==="add") timeMul; // time add 未使用
-    }
-  });
-  const output=item.output*outMul+outAdd;
-  const time=item.time*timeMul;
-
-  /* 材料 */
-  const materials=item.materials.map(m=>{
-    let mul=1,add=0;
-    ops.forEach(({op,count})=>{
-      if(op.target!=="material") return;
-      const nameOK = op.name ? op.name===m.name
-                    : op.exceptName ? m.name!==op.exceptName
-                    : true;
-      if(!nameOK) return;
-      if(op.op==="mul") mul*=Math.pow(op.value,count);
-      else if(op.op==="add") add+=op.value*count;
-    });
-    // 固定加減算（水冷の燃料-5 等）は最終値に適用: 基礎×倍率 + 加減算
-    return {name:m.name, base:m.qty, val:Math.max(0, m.qty*mul + add)};
-  });
-
-  /* 買取: まず各エントリの倍率・同一資源への加減算 */
-  const sell=item.sell.map(p=>{
-    let mul=1,add=0;
-    const isCash=p.name==="現金";
-    ops.forEach(({op,count})=>{
-      if(op.target!=="sell" || op.condEmpty || op.condOnName || op.byItem) return;
-      const catOK = !op.category || (op.category==="cash"? isCash : !isCash);
-      const nameOK = !op.name || op.name===p.name;
-      if(op.op==="mul"){
-        if(catOK && nameOK) mul*=Math.pow(op.value,count);
-      }else if(op.op==="add"){
-        if(op.category){ if(catOK) add+=op.value*count; }
-        else if(op.name===p.name){
-          if(op.condMin==null || p.qty>=op.condMin) add+=op.value*count;
-        }
+/* 1つの op を現在値（st/materials/sell）に逐次適用する */
+function applyOp(op, item, st, materials, sell, emptyBase){
+  function getSell(name){
+    let e=sell.find(s=>s.name===name);
+    if(!e){ e={name, base:0, val:0}; sell.push(e); }
+    return e;
+  }
+  switch(op.target){
+    case "output":
+      if(op.op==="mul") st.out*=op.value; else if(op.op==="add") st.out+=op.value;
+      break;
+    case "time":
+      if(op.op==="mul") st.time*=op.value; else if(op.op==="add") st.time+=op.value;
+      break;
+    case "material":
+      materials.forEach(m=>{
+        const nameOK = op.name ? op.name===m.name
+                      : op.exceptName ? m.name!==op.exceptName : true;
+        if(!nameOK) return;
+        if(op.op==="mul") m.val*=op.value;
+        else if(op.op==="add") m.val+=op.value;
+      });
+      break;
+    case "sell":
+      if(op.op==="transform" && op.mode==="nonCashToFuel"){
+        let sum=0; sell.forEach(s=>{ if(s.name!=="現金"){ sum+=(op.factor||2)*s.val; s.val=0; } });
+        getSell("燃料").val+=sum; break;
       }
-    });
-    return {name:p.name, base:p.qty, val:Math.max(0, p.qty*mul+add)};
-  });
-  /* 空欄への新規付与（着火） */
-  if(item.sell.length===0){
-    ops.forEach(({op,count})=>{
-      if(op.target==="sell" && op.condEmpty && op.op==="add")
-        sell.push({name:op.name, base:0, val:op.value*count});
-    });
+      if(op.condEmpty){ if(emptyBase && op.op==="add") getSell(op.name).val+=op.value; break; }
+      if(op.byItem){ const v=op.byItem[item.name]; if(v) getSell(op.name).val+=v; break; }
+      if(op.condOnName){
+        if(sell.some(s=>s.name===op.condOnName && s.val>=(op.condMin||0))) getSell(op.name).val+=op.value;
+        break;
+      }
+      sell.forEach(s=>{
+        const isCash=s.name==="現金";
+        const catOK=!op.category || (op.category==="cash"? isCash : !isCash);
+        const nameOK=!op.name || op.name===s.name;
+        if(op.op==="mul"){ if(catOK && nameOK) s.val*=op.value; }
+        else if(op.op==="add"){
+          if(op.category){ if(catOK) s.val+=op.value; }
+          else if(op.name===s.name){ if(op.condMin==null || s.val>=op.condMin) s.val+=op.value; }
+        }
+      });
+      break;
   }
-  /* 別資源を条件に現金を加算（認定証=建材15以上 / リトマス紙=薬品15以上）*/
-  function addTo(name, amt){
-    const e=sell.find(s=>s.name===name);
-    if(e) e.val+=amt; else sell.push({name, base:0, val:amt});
-  }
-  ops.forEach(({op,count})=>{
-    if(op.target==="sell" && op.op==="add" && op.condOnName){
-      // 条件は「補正後の」買取価格を参照（例: リトマス紙=補正後の薬品が15以上）
-      if(sell.some(s=>s.name===op.condOnName && s.val>=(op.condMin||0)))
-        addTo(op.name, op.value*count);
-    }
-  });
-  /* 特定アイテムで新資源を獲得（酸性触媒=化学反応）*/
-  ops.forEach(({op,count})=>{
-    if(op.target==="sell" && op.op==="add" && op.byItem){
-      const v=op.byItem[item.name];
-      if(v) addTo(op.name, v*count);
-    }
-  });
-  /* 変換（分別不要=現金以外を2倍の燃料に）。最後に適用 */
-  ops.forEach(({op})=>{
-    if(op.target==="sell" && op.op==="transform" && op.mode==="nonCashToFuel"){
-      let sum=0;
-      sell.forEach(s=>{ if(s.name!=="現金"){ sum+=(op.factor||2)*s.val; s.val=0; } });
-      addTo("燃料", sum);
-    }
+}
+/* 取得順（order）に従い、各スキルの効果を1つずつ逐次適用する。
+   重ねがけ回数ぶん連続適用。同じ項目への mul/add の順序＝取得順に依存する。 */
+function compute(item){
+  const st={ out:item.output, time:item.time };
+  const materials=item.materials.map(m=>({name:m.name, base:m.qty, val:m.qty}));
+  const sell=item.sell.map(p=>({name:p.name, base:p.qty, val:p.qty}));
+  const emptyBase = item.sell.length===0;
+
+  order.forEach(id=>{
+    const s=DATA.skills.find(x=>x.id===id);
+    if(!s) return;
+    const c=counts[id]||0;
+    if(c<=0 || !applicable(s,item)) return;
+    const ops=(s.effects && s.effects.ops)||[];
+    for(let n=0;n<c;n++) ops.forEach(op=>applyOp(op, item, st, materials, sell, emptyBase));
   });
 
-  return {output, time, materials, sell};
+  return {
+    output: st.out, time: st.time,
+    materials: materials.map(m=>({name:m.name, base:m.base, val:Math.max(0,m.val)})),
+    sell:      sell.map(s=>({name:s.name, base:s.base, val:Math.max(0,s.val)}))
+  };
 }
 
 /* ===== 表示ヘルパ ===== */
@@ -650,10 +641,40 @@ function renderSkills(){
     if(inp) inp.onchange=()=>setCount(id, parseInt(inp.value,10)||0);
     if(tog) tog.onclick=()=>setCount(id, (counts[id]||0)>0?0:1);
   });
+  renderOrder();
 }
 function setCount(id,v){
-  counts[id]=Math.max(0, v||0);
+  const nv=Math.max(0, v||0);
+  counts[id]=nv;
+  if(nv>0){ if(!order.includes(id)) order.push(id); }   // 初取得＝末尾に追加
+  else { const i=order.indexOf(id); if(i>=0) order.splice(i,1); }
   renderSkills(); renderItems();
+}
+function moveOrder(id, dir){
+  const i=order.indexOf(id); if(i<0) return;
+  const j = dir==="up" ? i-1 : i+1;
+  if(j<0 || j>=order.length) return;
+  [order[i],order[j]]=[order[j],order[i]];
+  renderSkills(); renderItems();
+}
+function renderOrder(){
+  const wrap=document.getElementById("order");
+  if(!order.length){ wrap.innerHTML=`<div class="ord-empty">スキルを選ぶとここに「取得順」が出ます。上から順に計算されます（順番で結果が変わります）。</div>`; return; }
+  let html=`<div class="ord-h">適用順（取得順・上から計算）</div>`;
+  order.forEach((id,i)=>{
+    const s=DATA.skills.find(x=>x.id===id); if(!s) return;
+    const c=counts[id]||0;
+    html+=`<div class="ord-row">
+      <span class="ord-n">${i+1}</span>
+      <span class="ord-nm">${s.name}${c>1?`<span class="ord-x"> ×${c}</span>`:""}</span>
+      <span class="ord-btns">
+        <button data-mv="up" data-id="${id}" ${i===0?"disabled":""}>▲</button>
+        <button data-mv="down" data-id="${id}" ${i===order.length-1?"disabled":""}>▼</button>
+      </span>
+    </div>`;
+  });
+  wrap.innerHTML=html;
+  wrap.querySelectorAll('[data-mv]').forEach(b=>{ b.onclick=()=>moveOrder(b.dataset.id, b.dataset.mv); });
 }
 
 function renderItems(){
@@ -701,19 +722,19 @@ function renderAll(){ renderSkills(); renderItems(); }
 
 /* ===== イベント ===== */
 document.getElementById("btn-clear").onclick=()=>{
-  Object.keys(counts).forEach(k=>delete counts[k]); renderAll();
+  Object.keys(counts).forEach(k=>delete counts[k]); order.length=0; renderAll();
 };
 document.getElementById("btn-load").onclick=()=>{
   const msg=document.getElementById("msg");
   try{
     const obj=JSON.parse(document.getElementById("json").value);
     if(!obj.items||!obj.skills) throw new Error("items と skills の両方が必要です。");
-    DATA=obj; Object.keys(counts).forEach(k=>delete counts[k]); renderAll();
+    DATA=obj; Object.keys(counts).forEach(k=>delete counts[k]); order.length=0; renderAll();
     msg.className="ok"; msg.textContent="読み込みました。";
   }catch(err){ msg.className="err"; msg.textContent="エラー: "+err.message; }
 };
 document.getElementById("btn-reset").onclick=()=>{
-  DATA=clone(SAMPLE); Object.keys(counts).forEach(k=>delete counts[k]);
+  DATA=clone(SAMPLE); Object.keys(counts).forEach(k=>delete counts[k]); order.length=0;
   document.getElementById("json").value=JSON.stringify(SAMPLE,null,2);
   document.getElementById("msg").textContent=""; renderAll();
 };
