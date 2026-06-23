@@ -473,8 +473,8 @@ function compute(item){
       if(op.op==="mul") mul*=Math.pow(op.value,count);
       else if(op.op==="add") add+=op.value*count;
     });
-    // 固定加減算（水冷の燃料-5 等）は掛け算の前に適用: (基礎+加減算)×倍率
-    return {name:m.name, base:m.qty, val:Math.max(0, (m.qty+add)*mul)};
+    // 固定加減算（水冷の燃料-5 等）は最終値に適用: 基礎×倍率 + 加減算
+    return {name:m.name, base:m.qty, val:Math.max(0, m.qty*mul + add)};
   });
 
   /* 買取: まず各エントリの倍率・同一資源への加減算 */
