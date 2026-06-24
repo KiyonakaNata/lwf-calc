@@ -161,9 +161,19 @@
   .rp-rc .nm{flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; opacity:.6;}
   .rp-rc.on .nm{opacity:1;}
   .rp-rc .qty{width:46px; background:var(--panel2); color:var(--text); border:1px solid var(--line);
-    border-radius:4px; padding:2px 4px; font-size:12px; text-align:right; font-variant-numeric:tabular-nums;}
-  .rp-rc .rt{color:var(--sub); font-variant-numeric:tabular-nums; min-width:96px; text-align:right;}
+    border-radius:4px; padding:2px 12px 2px 4px; font-size:12px; text-align:right; font-variant-numeric:tabular-nums;}
+  .rp-rc .rt{color:var(--sub); font-variant-numeric:tabular-nums; width:104px; flex-shrink:0; text-align:right;}
   .rp-rc .rt.warn{color:var(--warn);}
+  .rp-rc-item{margin-bottom:1px;}
+  .rp-rc-row{display:flex; align-items:center; gap:8px;}
+  .rp-rc-row .rp-rc{flex:1; min-width:0;}
+  .rp-sec{display:inline-flex; align-items:center; gap:3px; font-size:11px; color:var(--sub); cursor:pointer; white-space:nowrap; flex-shrink:0;}
+  .rp-sec.on{color:var(--warn);}
+  .rp-sec.dis{opacity:.4; cursor:not-allowed;}
+  .rp-rc-tags{display:flex; flex-wrap:wrap; gap:4px 8px; padding:1px 0 2px 22px; font-size:10px;}
+  .rp-thr.ok{color:var(--good);}
+  .rp-thr.warn{color:var(--bad);}
+  .rp-fam-su{margin-left:2px; font-size:9px; color:var(--warn); border:1px solid var(--warn); border-radius:3px; padding:0 2px;}
   .rp-rc .rp-mul,.rp-rc .rp-caplb{color:var(--sub); font-size:11px;}
   .rp-rc .rp-unit{color:var(--sub); font-size:10px;}
   .rp-tablewrap{max-height:360px; overflow:auto; border:1px solid var(--line); border-radius:6px;}
@@ -205,6 +215,32 @@
   .rp-mini:hover{border-color:var(--accent);}
   .rp-rc .cap{width:62px; background:var(--panel2); color:var(--text); border:1px solid var(--line);
     border-radius:4px; padding:2px 4px; font-size:12px; text-align:right; font-variant-numeric:tabular-nums;}
+  .rp-selfcraft{display:flex; flex-wrap:wrap; gap:4px 14px; margin-bottom:8px; font-size:12px;}
+  .rp-sc{display:inline-flex; align-items:center; gap:4px; color:var(--sub); cursor:pointer;}
+  .rp-sc.on{color:var(--text);}
+  .rp-sc-row{display:inline-flex; align-items:center; gap:3px;}
+  .rp-sc-qty{width:54px; background:var(--panel2); color:var(--text); border:1px solid var(--line);
+    border-radius:4px; padding:2px 4px; font-size:12px; text-align:right; font-variant-numeric:tabular-nums;}
+  .rp-scall{font-size:11px; font-weight:400; color:var(--sub); margin-left:4px;}
+  .rp-selfcraft .zero{color:var(--sub);}
+  .rp-thr{color:var(--warn); font-size:10px;}
+  .rp-familiar{margin-bottom:8px; font-size:13px;}
+  .rp-fam-c{display:inline-flex; align-items:center; gap:4px; background:var(--panel2); border:1px solid var(--line);
+    border-radius:6px; padding:3px 9px;}
+  .rp-fam-c b{color:var(--accent); font-size:15px; font-variant-numeric:tabular-nums;}
+  .rp-familiar .zero{color:var(--sub);}
+  .rp-fam-row{display:flex; flex-wrap:wrap; gap:6px 16px; margin-bottom:5px;}
+  .rp-fam-bd{font-size:11px; color:var(--sub); display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 10px; margin:2px 0;}
+  .rp-fam-bl{font-weight:700; color:var(--text); min-width:74px;}
+  .rp-fam-i b{color:var(--accent); font-variant-numeric:tabular-nums;}
+  .rp-fam-i.fin b{color:var(--good);}
+  .rp-surp{margin-left:3px; font-size:10px; color:var(--warn); border:1px solid var(--warn); border-radius:3px; padding:0 3px;}
+  .rp-surplus{font-size:12px; margin-bottom:8px; font-variant-numeric:tabular-nums;}
+  .rp-su-list{display:flex; flex-wrap:wrap; gap:4px 12px; color:var(--warn);}
+  .rp-su-sell{display:flex; flex-wrap:wrap; gap:4px 10px; margin-top:3px; font-size:11px; color:var(--sub); padding-left:8px; border-left:2px solid var(--line);}
+  .rp-su-sell.on{color:var(--good); border-left-color:var(--good);}
+  .rp-su-sell .pos{color:var(--good); font-weight:600;}
+  .rp-surplus .zero{color:var(--sub);}
   .rp-netwrap{margin-bottom:8px;}
   .rp-netrow{display:flex; gap:8px; align-items:baseline; padding:2px 0;}
   .rp-netlb{flex-shrink:0; font-size:11px; font-weight:700; min-width:64px;}
@@ -279,11 +315,17 @@
         </div>
         <div class="rp-lb">返済に使うレシピ（現金を生むもの・チェックで合算。×は数、上限は個/秒の搬出上限）:</div>
         <div id="rp-recipes" class="rp-recipes"></div>
+        <div class="rp-lb">中間素材を自作（チェックした素材は材料へ展開・再帰／最遅の素材で律速）<label class="rp-scall"><input type="checkbox" id="rp-self-all"> 全部</label><label class="rp-scall"><input type="checkbox" id="rp-sell-surplus"> 余剰は売却(納品)に回す</label>:</div>
+        <div id="rp-selfcraft" class="rp-selfcraft"></div>
+        <div class="rp-lb">必要な使い魔（選択レシピの体数＋自作中間素材ぶん・切上げ）:</div>
+        <div id="rp-familiar" class="rp-familiar"></div>
         <div class="rp-lb">資源収支（選択レシピ合計・買取−材料の差引/秒）:</div>
         <div class="rp-netwrap">
-          <div class="rp-netrow"><span class="rp-netlb pos">黒字(余剰)</span><div id="rp-net-pos" class="rp-net"></div></div>
+          <div class="rp-netrow"><span class="rp-netlb pos">黒字(余り)</span><div id="rp-net-pos" class="rp-net"></div></div>
           <div class="rp-netrow"><span class="rp-netlb neg">赤字(消費)</span><div id="rp-net-neg" class="rp-net"></div></div>
         </div>
+        <div class="rp-lb">余剰（端数）の中間素材<span class="rp-scall">※体数の切上げ・律速で余った分</span>:</div>
+        <div id="rp-surplus" class="rp-surplus"></div>
         <div class="rp-tablewrap">
           <table id="rp-table" class="rp-table"></table>
         </div>
@@ -292,8 +334,15 @@
           <ul>
             <li>現金/秒 ＝ <code>補正後の現金売値 × min(生産速度, 上限) × 数</code></li>
             <li>各回の<b>所要</b> ＝ <code>返済額 ÷ 収入</code>（返済時に現金は消費されるため）</li>
-            <li><b>「◀次から到達」</b>＝ 現在地（◀次）からその回まで貯めるのに必要な累計時間（◀次より上は「-」）</li>
+            <li><b>「◀から到達」</b>＝ 現在地（<b>◀</b>＝次の返済）からその回まで貯めるのに必要な累計時間（<b>◀</b>より上は「-」）</li>
             <li><b>搬出上限</b>：全体入力＋レシピ個別入力（個別が優先）。超過ぶんは生産自体が頭打ちと仮定。</li>
+            <li><b>中間素材を自作</b>：チェックした素材を「作るけど納品しない」中間素材として扱います。
+              <ul>
+                <li>材料へ<code>再帰展開</code>（さらに下の中間素材も自動で辿る）</li>
+                <li><b>体数</b>を指定すると供給が頭打ちになり、<u>その素材を使う製造物だけ</u>が律速（製造物ごとに独立）。<b>空欄＝自動</b>（必要数を満たす体数）</li>
+                <li>供給が需要を超えた端数は<b>余剰</b>として資源収支に黒字表示。<code>余剰は売却(納品)に回す</code> ONなら現金等の収入に加算</li>
+              </ul>
+            </li>
           </ul>
         </div>
       </div>
@@ -959,8 +1008,17 @@ const RP_DIFFS=[
 const rpUse={};   // itemId -> 収入計算に含めるか
 const rpQty={};   // itemId -> 数（未設定は1）
 const rpCap={};   // itemId -> 個別の搬出上限（個/秒。未設定=共通値）
+const rpSelf={};  // 材料名 -> 自作（1段展開・納品しない）として資源収支に反映するか
+const rpSelfQty={}; // 材料名 -> 自作に回す台数（未設定/空=自動＝連続供給に必要な台数）
+const rpSec={};   // itemId -> 余剰(端数)だけで作る二次製造物にするか
 // 基本資源（「全資源」は各 +N＝この全種に作用。現金も含む）
 const RP_RESOURCES=["現金","薬品","建材","肥料","食料品","燃料","高級品","魔力"];
+const RP_BASE=new Set([...RP_RESOURCES,"全資源","化学反応"]);
+// 材料名が「クラフト可能な中間アイテム」ならそのアイテムを返す（基礎資源は対象外）
+function rpCraftable(name){
+  if(RP_BASE.has(name)) return null;
+  return DATA.items.find(i=>i.name===name && i.materials && i.materials.length>0) || null;
+}
 // 進行度 k (0始まり) の返済額。WinCondition.cs 準拠。
 function rpAmount(diffVal, k){
   const nstart=(diffVal+1)*10, step=nstart+10;
@@ -1005,10 +1063,20 @@ function rpCashItems(){
     const addNet=(name,v)=>{ if(name==="全資源") RP_RESOURCES.forEach(res=>net[res]=(net[res]||0)+v);
                              else net[name]=(net[name]||0)+v; };
     r.sell.forEach(s=>addNet(s.name, s.val*r.output*eff));
-    r.materials.forEach(m=>addNet(m.name, -m.val*eff));
+    r.materials.forEach(m=>{
+      const ci = rpSelf[m.name] ? rpCraftable(m.name) : null;
+      if(ci){
+        // 自作（1段展開・納品しない）: m を作る材料を消費に計上、m 自体と m の売却は計上しない
+        const sub=compute(ci);
+        const per = sub.output>0 ? m.val/sub.output : 0;   // R1回あたり必要な ci の製造回数ぶん
+        sub.materials.forEach(sm=>addNet(sm.name, -sm.val*per*eff));
+      } else {
+        addNet(m.name, -m.val*eff);
+      }
+    });
     out.push({ id:item.id, name:item.name, familiar:item.familiar,
       capped:isFinite(cap)&&itemsPerSec>cap+1e-9,
-      rate: cashPer*r.output*eff, net, qty });
+      rate: cashPer*r.output*eff, net, qty, eff });
   });
   return out;
 }
@@ -1027,21 +1095,207 @@ function renderRepayRecipes(){
   // 同名アイテム（例: 金貨＝サラマンダー/ウィッチ）は使い魔名で区別
   const nameCount={};
   DATA.items.forEach(i=>nameCount[i.name]=(nameCount[i.name]||0)+1);
+  const sol=rpSolve();
+  const plan={}; sol.finals.forEach(p=>plan[p.id]=p);   // 選択レシピの律速反映後
+  const surMats=new Set(Object.keys(sol.surplusRaw||{}).filter(k=>sol.surplusRaw[k]>1e-9));  // 余剰が出ている中間素材
   wrap.innerHTML = items.length ? items.map(it=>{
     const on=!!rpUse[it.id];
     const label=nm(it.name)+(nameCount[it.name]>1?` <span class="rp-fam">(${it.familiar})</span>`:"");
     const capv=rpCap[it.id]==null?"":rpCap[it.id];
-    return `<label class="rp-rc ${on?"on":""}">`
+    const p=plan[it.id], sec=!!rpSec[it.id];
+    const rate = p ? (p.rateE||0) : it.rate;
+    // 余剰で製造: その材料に余剰が出ている時だけ選択可（既にONなら解除のため操作可）
+    const canSurplus = DATA.items.find(x=>x.id===it.id).materials.some(m=>surMats.has(m.name));
+    const secDis = !canSurplus && !sec;
+    const tags = (p && p.tf<1-1e-9 ? `<span class="rp-thr">律速×${fmtMul(p.tf)}</span>` : "")
+              + (p && p.rateExtra>1e-9 ? `<span class="rp-thr ok">+余剰 ${fmtRate(p.rateExtra)}/秒</span>` : "")
+              + (it.capped ? `<span class="rp-thr warn">⚠上限超</span>` : "");
+    return `<div class="rp-rc-item">`
+      +`<div class="rp-rc-row">`
+      +`<label class="rp-rc ${(on||sec)?"on":""}">`
       +`<input type="checkbox" data-rp-use="${it.id}" ${on?"checked":""}>`
       +`<span class="nm">${label}</span>`
       +`<span class="rp-mul">×</span><input class="qty" type="number" min="0" step="1" data-rp-qty="${it.id}" value="${it.qty}" title="数（×N）">`
       +`<span class="rp-caplb">上限</span><input class="cap" type="number" min="0" step="1" data-rp-cap="${it.id}" value="${capv}" placeholder="共通" title="このレシピ単体の搬出上限（個/秒）。空欄なら上の全体設定を使用"><span class="rp-unit">個/秒</span>`
-      +`<span class="rt ${it.capped?"warn":""}">${fmtRate(it.rate)} 現金/秒${it.capped?" ⚠":""}</span>`
-      +`</label>`;
+      +`<span class="rt">${fmtRate(rate)} 現金/秒</span>`
+      +`</label>`
+      +`<label class="rp-sec ${sec?"on":""} ${secDis?"dis":""}" title="${secDis?"この材料の余剰が無いため選択できません":"他製造物の余剰(端数)を使って追加生産（返済チェック併用で『普通＋余剰』、単独で『余剰のみ』）"}"><input type="checkbox" data-rp-sec="${it.id}" ${sec?"checked":""} ${secDis?"disabled":""}>余剰で製造</label>`
+      +`</div>`
+      + (tags?`<div class="rp-rc-tags">${tags}</div>`:"")
+      +`</div>`;
   }).join("") : `<div class="empty">現金を生むレシピがありません</div>`;
   wrap.querySelectorAll('[data-rp-use]').forEach(b=>b.onchange=()=>{ rpUse[b.dataset.rpUse]=b.checked; refreshRepay(); });
   wrap.querySelectorAll('[data-rp-qty]').forEach(b=>b.onchange=()=>{ rpQty[b.dataset.rpQty]=Math.max(0,parseInt(b.value,10)||0); refreshRepay(); });
   wrap.querySelectorAll('[data-rp-cap]').forEach(b=>b.onchange=()=>{ const v=b.value.trim(); rpCap[b.dataset.rpCap]= v===""?undefined:Math.max(0,parseFloat(v)||0); refreshRepay(); });
+  wrap.querySelectorAll('[data-rp-sec]').forEach(b=>b.onchange=()=>{ rpSec[b.dataset.rpSec]=b.checked; refreshRepay(); });
+}
+// 選択中レシピが使う「クラフト可能な中間アイテム材料」名の一覧。
+// 自作チェック済みの素材は、その材料（さらに下の中間素材）も再帰的にリスト化（＝チェックするほど下層が出る）。
+function rpSelfCraftItems(){
+  const order=[];
+  const walk=(name, seen)=>{
+    const ci=rpCraftable(name); if(!ci) return;
+    if(!order.includes(name)) order.push(name);
+    if(rpSelf[name] && !seen.has(name)){
+      const seen2=new Set(seen); seen2.add(name);
+      compute(ci).materials.forEach(m=>walk(m.name, seen2));
+    }
+  };
+  rpCashItems().filter(it=>rpUse[it.id]).forEach(it=>{
+    const item=DATA.items.find(x=>x.id===it.id); if(!item) return;
+    item.materials.forEach(m=>walk(m.name, new Set()));
+  });
+  return order;
+}
+// 全自作トグル用: 選択レシピから到達できる全クラフト可能中間素材（再帰・チェック無関係）
+function rpAllCraftable(){
+  const all=new Set();
+  const walk=(name, seen)=>{
+    const ci=rpCraftable(name); if(!ci || seen.has(name)) return;
+    all.add(name);
+    const seen2=new Set(seen); seen2.add(name);
+    compute(ci).materials.forEach(m=>walk(m.name, seen2));
+  };
+  rpCashItems().filter(it=>rpUse[it.id]).forEach(it=>{
+    const item=DATA.items.find(x=>x.id===it.id); if(!item) return;
+    item.materials.forEach(m=>walk(m.name, new Set()));
+  });
+  return [...all];
+}
+function renderSelfCraft(){
+  const wrap=document.getElementById("rp-selfcraft"); if(!wrap) return;
+  const names=rpSelfCraftItems();
+  const allEl=document.getElementById("rp-self-all");
+  if(allEl){ const allc=rpAllCraftable(); allEl.checked = allc.length>0 && allc.every(n=>rpSelf[n]); }
+  wrap.innerHTML = names.length
+    ? names.map(n=>{
+        const on=!!rpSelf[n];
+        const qv=rpSelfQty[n]==null?"":rpSelfQty[n];
+        return `<span class="rp-sc-row">`
+          +`<label class="rp-sc ${on?"on":""}"><input type="checkbox" data-rp-self="${n}" ${on?"checked":""}>${nm(n)}</label>`
+          +(on?`<input class="rp-sc-qty" type="number" min="0" step="1" data-rp-selfqty="${n}" value="${qv}" placeholder="自動" title="この素材を作る体数（空欄/0=自動＝連続供給に必要な体数。少なくすると最終アイテムが素材待ちで律速）">体`:``)
+          +`</span>`;
+      }).join("")
+    : `<span class="zero">対象なし（選択レシピにクラフト材料なし）</span>`;
+  wrap.querySelectorAll('[data-rp-self]').forEach(b=>b.onchange=()=>{ rpSelf[b.dataset.rpSelf]=b.checked; refreshRepay(); });
+  wrap.querySelectorAll('[data-rp-selfqty]').forEach(b=>b.onchange=()=>{ const num=parseInt(b.value.trim(),10); const q=(num>0)?num:undefined; rpSelfQty[b.dataset.rpSelfqty]=q; if(q==null) b.value=""; refreshRepay(); });
+}
+// 自作素材の台数が「指定」かどうか（空欄=自動）
+function rpSelfFixed(name){ const v=rpSelfQty[name]; return v!=null && v!=="" && isFinite(+v); }
+function rpProdRate(ci){ const s=compute(ci); return s.time>0 ? s.output/s.time : 0; } // 個/秒/台
+// 生産チェーンを「クラフト回数/秒」の不動点で解く（律速→余剰まで一貫）。返り値:
+//   net   … 資源収支（最終の買取＋全資源 − 末端資源消費 ＋ 余剰中間素材 or 余剰の売却）
+//   finals… 選択レシピ（it.rateE/効レート/製造物ごとの tf 付き）
+//   need  … 使い魔ごとの必要台数 / totalRate … 現金/秒
+function rpSolve(){
+  const allF=rpCashItems().filter(it=>rpUse[it.id]||rpSec[it.id]);   // 返済チェック or 余剰で製造
+  const finals=allF.filter(it=>rpUse[it.id]);     // 普通生産（×N台ぶん・中間生産を駆動）
+  const secs=allF.filter(it=>rpSec[it.id]);       // 余剰で製造（rpUse併用=普通＋余剰 / rpUseなし=余剰のみ）
+  const _cc={}; const C=it=>_cc[it.id]||(_cc[it.id]=compute(it));   // compute キャッシュ
+  const byId=id=>DATA.items.find(x=>x.id===id);
+  const byName=n=>DATA.items.find(i=>i.name===n);
+  const selfInt=n=>rpSelf[n] && rpCraftable(n);
+  const sellSurplus=!!(document.getElementById("rp-sell-surplus")||{}).checked;
+  // 到達する自作中間素材
+  const inters=[]; { const seen=new Set();
+    const walk=n=>{ if(!selfInt(n)||seen.has(n))return; seen.add(n); inters.push(n); C(byName(n)).materials.forEach(m=>walk(m.name)); };
+    finals.forEach(it=>C(byId(it.id)).materials.forEach(m=>walk(m.name))); }
+  // 製造crafts/secを不動点で解く（rateById: finalId -> crafts/sec, itfMap: 中間素材ごとの律速係数）
+  // pc[n]=中間素材nの実製造crafts/sec。下流需要・余剰はこの実スループット基準で計算する。
+  //  - 固定台数         : 台数ぶんフル稼働（rpSelfQty/time）
+  //  - 律速あり(itf<1)  : 飢餓状態。需要ぶんだけ生産（端数余剰なし） → 需要/output
+  //  - 律速なし         : 整数台フル稼働。端数切上げの超過分が「余剰」になる → ceil(需要/1台生産)/time
+  const solveCps=(rateById, itfMap)=>{
+    const pc={}; const fc={}; finals.forEach(it=>fc[it.id]=rateById[it.id]||0); inters.forEach(n=>pc[n]=0);
+    const calcDemand=()=>{ const d={};
+      finals.forEach(it=>C(byId(it.id)).materials.forEach(m=>{ if(selfInt(m.name)) d[m.name]=(d[m.name]||0)+fc[it.id]*m.val; }));
+      inters.forEach(n=>{ const c=pc[n]; if(c) C(byName(n)).materials.forEach(m=>{ if(selfInt(m.name)) d[m.name]=(d[m.name]||0)+c*m.val; }); });
+      return d; };
+    for(let p=0;p<60;p++){ const d=calcDemand(); let ch=false;
+      inters.forEach(n=>{ const sub=C(byName(n)); const ppm=sub.time>0?sub.output/sub.time:0; let want;
+        if(rpSelfFixed(n)) want = sub.time>0?(+rpSelfQty[n]||0)/sub.time:0;
+        else if(itfMap && itfMap[n]<1-1e-9) want = sub.output>0?(d[n]||0)/sub.output:0;
+        else want = ppm>0?Math.ceil((d[n]||0)/ppm-1e-9)/sub.time:0;
+        if(Math.abs(pc[n]-want)>1e-12){ pc[n]=want; ch=true; } });
+      if(!ch)break; }
+    return {pc, fc, demand:calcDemand()};
+  };
+  // 1) フルレート需要 → 台数指定素材の律速係数 tfX
+  const fullRate={}; finals.forEach(it=>fullRate[it.id]=it.eff);
+  const f0=solveCps(fullRate, null); const tfX={};
+  inters.forEach(n=>{ if(rpSelfFixed(n)){ const sub=C(byName(n)); const supply=sub.time>0?(+rpSelfQty[n]||0)/sub.time*sub.output:0; tfX[n]=f0.demand[n]>0?Math.min(1,supply/f0.demand[n]):1; } });
+  // ある節点から（材料を辿って）到達する固定ボトルネックの集合
+  const reachFrom=start=>{ const set=new Set(), seen=new Set();
+    const walk=n=>{ if(!selfInt(n)||seen.has(n))return; seen.add(n); if(rpSelfFixed(n))set.add(n); C(byName(n)).materials.forEach(m=>walk(m.name)); };
+    start(walk); return set; };
+  const reach=it=>reachFrom(walk=>C(byId(it.id)).materials.forEach(m=>walk(m.name)));
+  // 製造物ごとに到達ボトルネックの tf の min を適用
+  const effRate={};
+  finals.forEach(it=>{ let tf=1; reach(it).forEach(n=>{ if(tfX[n]!=null) tf=Math.min(tf,tfX[n]); }); it.tf=tf; it.effE=it.eff*tf; it.rateE=it.rate*tf; effRate[it.id]=it.effE; });
+  // 中間素材ごとの律速係数（その素材自身＋上流の固定ボトルネックの min）
+  const itf={}; inters.forEach(n=>{ let t=1; reachFrom(walk=>walk(n)).forEach(x=>{ if(tfX[x]!=null) t=Math.min(t,tfX[x]); }); itf[n]=t; });
+  // 2) 律速後で解く
+  const {pc,demand}=solveCps(effRate, itf);
+  // 3) 資源収支 net と 使い魔台数（内訳 parts 付き）
+  const net={}, need={}, parts=[], surplusSell={};
+  const addNet=(name,v)=>{ if(name==="全資源") RP_RESOURCES.forEach(r=>net[r]=(net[r]||0)+v); else net[name]=(net[name]||0)+v; };
+  // 主製造物の納品・材料消費
+  finals.forEach(it=>{ const r=C(byId(it.id)); const c=it.effE||0;
+    r.sell.forEach(s=>addNet(s.name, s.val*r.output*c));
+    r.materials.forEach(m=>{ if(!selfInt(m.name)) addNet(m.name, -m.val*c); });
+    need[it.familiar]=(need[it.familiar]||0)+(it.qty||0);
+    parts.push({name:it.name, familiar:it.familiar, machines:(it.qty||0), kind:"final"});
+  });
+  // 中間素材: 非自作材料の消費＋余剰収集（netへの計上は二次製造物の消費後）
+  const surplusRaw={};
+  inters.forEach(n=>{ const item=byName(n), sub=C(item); const c=pc[n]||0;
+    sub.materials.forEach(m=>{ if(!selfInt(m.name)) addNet(m.name, -m.val*c); });
+    const surp=c*sub.output-(demand[n]||0);
+    if(surp>1e-9) surplusRaw[n]=(surplusRaw[n]||0)+surp;
+    const mc = rpSelfFixed(n)?(+rpSelfQty[n]||0):Math.ceil(c*sub.time-1e-9);
+    need[item.familiar]=(need[item.familiar]||0)+mc;
+    parts.push({name:n, familiar:item.familiar, machines:mc, kind:"inter"});
+  });
+  // 余剰チェックの製造物: ×N台の普通生産（上で計上済み）に加え、端数を消費して追加生産（選択順に消費）
+  const avail=Object.assign({}, surplusRaw);
+  secs.forEach(it=>{ const r=C(byId(it.id));
+    let extra=Infinity, uses=false;
+    r.materials.forEach(m=>{ if(selfInt(m.name)){ uses=true; extra=Math.min(extra, (avail[m.name]||0)/m.val); } });
+    extra = uses?Math.max(0,extra):0;
+    if(extra>1e-9){
+      r.materials.forEach(m=>{ if(selfInt(m.name)) avail[m.name]=(avail[m.name]||0)-m.val*extra; else addNet(m.name, -m.val*extra); });
+      r.sell.forEach(s=>addNet(s.name, s.val*r.output*extra));
+      const exM=Math.ceil(extra*r.time-1e-9);          // 余剰分の追加台数
+      need[it.familiar]=(need[it.familiar]||0)+exM;
+      parts.push({name:it.name, familiar:it.familiar, machines:exM, kind:"surplusExtra"});
+      it.rateExtra=extra;
+      it.rateE=(it.rateE||0)+(it.eff>0?it.rate*extra/it.eff:0);   // 行表示用に追加現金を加算
+    }
+  });
+  // 残った余剰 → 収支（売却 or 黒字）＋売却内訳
+  const surplus={};
+  Object.keys(avail).forEach(n=>{ const surp=avail[n]; if(surp>1e-9){
+    surplus[n]=surp; const sub=C(byName(n));
+    sub.sell.forEach(s=>{ if(s.name==="全資源") RP_RESOURCES.forEach(r=>surplusSell[r]=(surplusSell[r]||0)+s.val*surp); else surplusSell[s.name]=(surplusSell[s.name]||0)+s.val*surp; });
+    if(sellSurplus) sub.sell.forEach(s=>addNet(s.name, s.val*surp)); else addNet(n, surp);
+  }});
+  const totalRate=net["現金"]||0;
+  return { net, finals:allF, need, parts, surplus, surplusSell, surplusRaw, totalRate };
+}
+function renderFamiliar(){
+  const wrap=document.getElementById("rp-familiar"); if(!wrap) return;
+  const s=rpSolve(); const need=s.need, parts=s.parts;
+  const fams=[...new Set(DATA.items.map(i=>i.familiar))].filter(f=>need[f]>0);
+  if(!fams.length){ wrap.innerHTML=`<span class="zero">レシピ未選択</span>`; return; }
+  const chips=fams.map(f=>`<span class="rp-fam-c">${nm(f)} <b>${need[f]}</b> 体</span>`).join("");
+  const bd=fams.map(f=>{
+    const its=parts.filter(p=>p.familiar===f && p.machines>0);
+    if(!its.length) return "";
+    return `<div class="rp-fam-bd"><span class="rp-fam-bl">${nm(f)}</span>`
+      + its.map(p=>`<span class="rp-fam-i ${p.kind==="final"?"fin":""}">${nm(p.name)}<b>×${p.machines}</b>${p.kind==="surplusExtra"?'<span class="rp-fam-su">余剰</span>':""}</span>`).join("")
+      + `</div>`;
+  }).join("");
+  wrap.innerHTML=`<div class="rp-fam-row">${chips}</div>${bd}`;
 }
 function renderRepay(){
   const sel=document.getElementById("rp-diff"); if(!sel||!sel.options.length) return;
@@ -1051,8 +1305,8 @@ function renderRepay(){
   const added=rpLeaseAdded(diffVal, L);
   const total=base+added;
   const nstart=(diffVal+1)*10, step=nstart+10;
-  const chosen=rpCashItems().filter(it=>rpUse[it.id]);
-  const totalRate=chosen.reduce((a,it)=>a+it.rate,0);
+  const solved=rpSolve();
+  const totalRate=solved.totalRate;
   // 進行度 = 契約取得回数の合計 ＋ 補正。注文入手(orders)とポータルは返済回数に関与しないため除外。
   const picks=Object.entries(counts).reduce((a,[id,c])=>{
     const s=DATA.skills.find(x=>x.id===id);
@@ -1060,19 +1314,33 @@ function renderRepay(){
   },0);
   const extra=parseInt((document.getElementById("rp-extra")||{}).value,10)||0;
   const progress=Math.max(0, picks+extra);
-  // 資源収支（現金以外）を合算 → 黒字/赤字を別表示
-  const net={};
-  chosen.forEach(it=>{ for(const k in it.net) net[k]=(net[k]||0)+it.net[k]; });
+  // 資源収支（現金以外・再帰展開後の末端資源）を 黒字/赤字で表示
+  const net=solved.net, surplus=solved.surplus||{};
   const posEl=document.getElementById("rp-net-pos"), negEl=document.getElementById("rp-net-neg");
   if(posEl&&negEl){
     const keys=Object.keys(net).filter(k=>k!=="現金" && Math.abs(net[k])>1e-9);
-    const chip=(k)=>`<span class="${net[k]>0?"pos":"neg"}">${nm(k)} ${net[k]>0?"+":""}${fmtRate(net[k])}/秒</span>`;
+    const chip=(k)=>`<span class="${net[k]>0?"pos":"neg"}">${nm(k)} ${net[k]>0?"+":""}${fmtRate(net[k])}/秒${surplus[k]?'<span class="rp-surp">余剰</span>':""}</span>`;
     const pos=keys.filter(k=>net[k]>0).sort((a,b)=>net[b]-net[a]);
     const neg=keys.filter(k=>net[k]<0).sort((a,b)=>net[a]-net[b]);
-    posEl.innerHTML=pos.map(chip).join("") || `<span class="zero">${chosen.length?"なし":"レシピ未選択"}</span>`;
+    posEl.innerHTML=pos.map(chip).join("") || `<span class="zero">${solved.finals.length?"なし":"レシピ未選択"}</span>`;
     negEl.innerHTML=neg.map(chip).join("") || `<span class="zero">なし</span>`;
   }
-  let rows="", cum=0, cumCur=0;   // cum: 総額算出用 / cumCur: ◀次(progress)以降の累計返済額
+  // 余剰（端数）の中間素材＋（売却時/可能時）の売却内訳
+  const surEl=document.getElementById("rp-surplus");
+  if(surEl){
+    const sk=Object.keys(surplus).filter(k=>surplus[k]>1e-9);
+    if(!sk.length){ surEl.innerHTML=`<span class="zero">なし</span>`; }
+    else {
+      const sold=!!(document.getElementById("rp-sell-surplus")||{}).checked;
+      const items=sk.sort((a,b)=>surplus[b]-surplus[a]).map(k=>`<span class="rp-su-i">${nm(k)} +${fmtRate(surplus[k])}/秒</span>`).join("");
+      const ss=solved.surplusSell||{};
+      const sellBd=Object.keys(ss).filter(k=>Math.abs(ss[k])>1e-9).sort((a,b)=>ss[b]-ss[a])
+        .map(k=>`<span class="${k==="現金"?"pos":""}">${nm(k)} +${fmtRate(ss[k])}/秒</span>`).join(" ");
+      surEl.innerHTML=`<div class="rp-su-list">${items}</div>`
+        + (sellBd?`<div class="rp-su-sell ${sold?"on":""}">${sold?"売却で得る:":"売却すれば:"} ${sellBd}</div>`:"");
+    }
+  }
+  let rows="", cum=0, cumCur=0;   // cum: 総額算出用 / cumCur: ◀(現在地=progress)以降の累計返済額
   for(let k=0;k<total;k++){
     const amt=rpAmount(diffVal,k); cum+=amt;
     const isBonus=(k>=10 && k%5===0), isCur=(k===progress);
@@ -1080,15 +1348,15 @@ function renderRepay(){
     // 倍率: 前回返済額に対する比（amount(k)/amount(k-1)）。1回目は「-」。
     const prev=k>=1?rpAmount(diffVal,k-1):0;
     const mul=(k>=1 && prev>0)?"×"+fmtMul(amt/prev):"-";
-    // 到達: ◀次の位置から そこまで かかる時間。◀次より上は「-」。
+    // 到達: ◀の位置から そこまで かかる時間。◀より上は「-」。
     let reach;
     if(k<progress){ reach="-"; }
     else { cumCur+=amt; reach = totalRate>0 ? fmtTime(cumCur/totalRate) : "—"; }
-    rows+=`<tr class="${isBonus?"rp-bonus":""}${isCur?" rp-cur":""}"><td>${k+1}${isCur?" ◀次":""}</td><td>${amt.toLocaleString()}</td>`
+    rows+=`<tr class="${isBonus?"rp-bonus":""}${isCur?" rp-cur":""}"><td>${k+1}${isCur?" ◀":""}</td><td>${amt.toLocaleString()}</td>`
         + `<td>${mul}</td><td>${fmtTime(tEach)}</td><td>${reach}</td></tr>`;
   }
   document.getElementById("rp-table").innerHTML=
-    `<thead><tr><th>回</th><th>返済額</th><th>倍率</th><th>所要</th><th>◀次から到達</th></tr></thead><tbody>${rows}</tbody>`;
+    `<thead><tr><th>回</th><th>返済額</th><th>倍率</th><th>所要</th><th>◀から到達</th></tr></thead><tbody>${rows}</tbody>`;
   // 難易度固定パラメータはコンパクト表示
   const pEl=document.getElementById("rp-params");
   if(pEl) pEl.textContent=`初期 ${nstart.toLocaleString()} | 毎回 +${step.toLocaleString()} | 5回ごと +500 | 返済必要回数 ${total}回${added?`(基本${base}+融資${added})`:""} | 総額 ${cum.toLocaleString()}`;
@@ -1108,7 +1376,7 @@ function renderRepay(){
   document.getElementById("rp-summary").innerHTML=
     cards.map(([k,v])=>`<div class="c"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
 }
-function refreshRepay(){ renderRepayRecipes(); renderRepay(); }
+function refreshRepay(){ renderRepayRecipes(); renderSelfCraft(); renderFamiliar(); renderRepay(); }
 function initRepay(){
   const sel=document.getElementById("rp-diff");
   sel.innerHTML=RP_DIFFS.map(d=>`<option value="${d.v}">${d.label}</option>`).join("");
@@ -1119,6 +1387,10 @@ function initRepay(){
   if(ext) ext.oninput=refreshRepay;
   const capg=document.getElementById("rp-cap-global");
   if(capg) capg.oninput=refreshRepay;
+  const sa=document.getElementById("rp-self-all");
+  if(sa) sa.onchange=()=>{ const on=sa.checked; rpAllCraftable().forEach(n=>rpSelf[n]=on); refreshRepay(); };
+  const ss=document.getElementById("rp-sell-surplus");
+  if(ss) ss.onchange=refreshRepay;
   document.querySelectorAll(".rp-mini").forEach(b=>b.onclick=()=>{
     const g=document.getElementById("rp-cap-global"); if(g){ g.value=b.dataset.cap; } refreshRepay();
   });
