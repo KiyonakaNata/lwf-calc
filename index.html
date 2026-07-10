@@ -3607,7 +3607,7 @@ function simTimeline(ctx){
 let reproSeed=1+Math.floor(Math.random()*99999);   
 
 
-const CALC_VER="1.0.0", CALC_GAME_VER="0.19.0", CALC_BUILD="2026-07-10";   
+const CALC_VER="1.0.1", CALC_GAME_VER="0.19.0", CALC_BUILD="2026-07-10";   
 try{ const ve=document.getElementById("calc-ver");
   if(ve) ve.textContent=`v${CALC_VER}／ゲーム ver ${CALC_GAME_VER} 準拠${CALC_BUILD.indexOf("__")===0?"（dev）":`（build ${CALC_BUILD}）`}`;
 }catch(e){}
@@ -4022,7 +4022,7 @@ let reproNoRewind=false;
 let reproFog=true;         
 let reproRecPerSec=false;  
 let reproCheatMap=false;   
-let reproPactRowOpen=false;
+let reproPactRowOpen=true; 
 let reproCheatLax=false;   
 
 
@@ -5409,8 +5409,10 @@ function renderRepro(){
     return `${nm2}${c.src?`（${c.src}・${rn}）`:""}${c.desc?" — "+c.desc:""}`;
   };
   const pactChip=(handIdx, slot, card, ro)=>{
+    
+    
     const pk=reproPactPicks[handIdx]||null;
-    const on=pk&&pk.take===slot;
+    const on=ro!=="off" && pk&&pk.take===slot;
     if(!card) return `<span class="sim-chip" style="opacity:.4;">枠${slot+1}なし</span>`;
     const rn=RARNAMES[card.rar]||"";
     
@@ -5928,11 +5930,25 @@ function renderRepro(){
           if(!payDecided) return "";   
           const ph2=pactHands[payIdx];
           const taken=ph2&&ph2.taken;
-          const lbl=payPk.skip?"⤼スキップ（取得なし）":(taken?`${icon(taken.name)}${esc(taken.name)}`:"—");
+          const rrN=(payPk.rerolls|0)||0;
+          const lbl=(payPk.skip?"⤼スキップ（取得なし）":(taken?`${icon(taken.name)}${esc(taken.name)}`:"—"))
+            +(rrN>0?`<span style="color:var(--sub);font-weight:400;">（🔄リロール${rrN}回）</span>`:"");
           
-          const handHtml=(reproPactRowOpen&&ph2&&ph2.hand)?`<div class="rpr-modal-cards" style="margin:4px 0 2px;">`
-            +ph2.hand.map((c,s)=>pactChip(payIdx, s, c, true)).join("")
-            +(payPk.skip?`<span class="lb" style="align-self:center;">⤼この回はスキップ＝どれも取得しませんでした</span>`:"")+`</div>`:"";
+          
+          let handHtml="";
+          if(reproPactRowOpen&&ph2&&ph2.hand){
+            for(let k2=0;k2<rrN;k2++){
+              const pks2={}; Object.keys(reproPactPicks).forEach(q=>{ if(+q<payIdx) pks2[q]=reproPactPicks[q]; });
+              pks2[payIdx]={rerolls:k2};
+              const g=(reproPactSim(reproSeed, pks2, payIdx+1)[payIdx]||{}).hand||[];
+              handHtml+=`<div class="rpr-row" style="margin-top:4px;"><span class="lb">🔄${k2+1}回目のリロールで流した手札${k2===0?"（最初の手札）":""}</span></div>`
+                +`<div class="rpr-modal-cards" style="margin:0 0 2px; opacity:.55;">`+g.map((c,s)=>pactChip(payIdx, s, c, "off")).join("")+`</div>`;
+            }
+            handHtml+=(rrN>0?`<div class="rpr-row" style="margin-top:4px;"><span class="lb">最終手札（リロール${rrN}回後・ここから選択）</span></div>`:"")
+              +`<div class="rpr-modal-cards" style="margin:4px 0 2px;">`
+              +ph2.hand.map((c,s)=>pactChip(payIdx, s, c, true)).join("")
+              +(payPk.skip?`<span class="lb" style="align-self:center;">⤼この回はスキップ＝どれも取得しませんでした</span>`:"")+`</div>`;
+          }
           return `<div class="rpr-row"><span class="lb" style="min-width:170px;"><b>🃏契約 #${payIdx+1}</b>（第${payIdx+1}回返済）</span>`
             +`<span class="lb">取得: <b>${lbl}</b></span>`
             +`<button type="button" class="rp-mini" data-rpr-pactview title="この回に提示された手札と選んだもの（✅青枠）を表示。見るだけ＝取得の変更はされません">🃏手札を${reproPactRowOpen?"隠す":"見る"}</button>`
