@@ -3607,7 +3607,7 @@ function simTimeline(ctx){
 let reproSeed=1+Math.floor(Math.random()*99999);   
 
 
-const CALC_VER="1.0.1", CALC_GAME_VER="0.19.0", CALC_BUILD="2026-07-10";   
+const CALC_VER="1.1.0", CALC_GAME_VER="0.19.0", CALC_BUILD="2026-07-11";   
 try{ const ve=document.getElementById("calc-ver");
   if(ve) ve.textContent=`v${CALC_VER}／ゲーム ver ${CALC_GAME_VER} 準拠${CALC_BUILD.indexOf("__")===0?"（dev）":`（build ${CALC_BUILD}）`}`;
 }catch(e){}
@@ -3755,6 +3755,11 @@ function reproRunApply(p){
   reproMapCells=p.cells||null;
   asn(reproAllocMap,p.alloc); reproAllocPrio.length=0; (p.prio||[]).forEach(x=>reproAllocPrio.push(x));
   asn(reproQty,p.qty); asn(reproUse,p.use); asn(reproUseKf,p.useKf);
+  
+  
+  
+  Object.keys(reproQty).forEach(id=>{ const v=reproQty[id];
+    if(Array.isArray(v) && v.length && v[0].t>1e-9) v.unshift({t:0, n:1}); });
   asn(reproPortalUse,p.pt); asn(reproPtUseKf,p.ptKf);
   reproBuys.length=0; (p.buys||[]).forEach(x=>reproBuys.push(x));
   reproPlan.length=0; (p.plan||[]).forEach(x=>reproPlan.push(x));
@@ -6833,13 +6838,19 @@ function reproBind(){
     renderRepro();
   });
   root.querySelectorAll("[data-rpr-qty]").forEach(el=>el.onchange=()=>{
+    const id=el.dataset.rprQty;
     if(!reproPastEditGuard(reproCursor)){ renderRepro(); return; }   
-    reproKfSet(reproQty, el.dataset.rprQty, reproCursor, Math.max(0,parseInt(el.value,10)||0)); renderRepro();   
+    
+    
+    
+    if(reproQty[id]==null) reproQty[id]=1;
+    reproKfSet(reproQty, id, reproCursor, Math.max(0,parseInt(el.value,10)||0)); renderRepro();   
   });
   root.querySelectorAll("[data-rpr-qstep]").forEach(el=>el.onclick=()=>{   
     const [id,dRaw]=el.dataset.rprQstep.split("|"); const d=parseInt(dRaw,10)||0;
     if(!reproPastEditGuard(reproCursor)){ renderRepro(); return; }
     const cur=reproQty[id]==null?1:Math.max(0,reproKfAt(reproQty[id], reproCursor));   
+    if(reproQty[id]==null) reproQty[id]=1;   
     reproKfSet(reproQty, id, reproCursor, Math.max(0, cur+d)); renderRepro();
   });
   
