@@ -3133,7 +3133,7 @@ function simTimeline(ctx){
       
       const hist=(!rc && i<simHist.length)?simHist[i]:null;
       let rate, netStep, parts, bufUse={}, stepWarns=null, sawSpans=null;
-      let stepRw=null, stepEv=null, lastSv=null;   
+      let stepRw=null, stepEv=null, lastSv=null, stepSegs=null;   
       if(hist){
         rate=hist.rate; netStep=hist.net; parts=hist.parts; bufUse=hist.bufUse||{}; stepWarns=hist.warns||null;
         sawSpans=hist.saw||null;
@@ -3168,6 +3168,11 @@ function simTimeline(ctx){
         const exhausted={};                                             
         let needR=need0, durS=0, rate0=null, stallStep=false;
         const netTot={}, partsTot={};
+        
+        
+        
+        
+        stepSegs=rc?[]:null;
         const guardMax=rc?256:64;   
         for(let guard=0; guard<guardMax; guard++){
           
@@ -3260,6 +3265,8 @@ function simTimeline(ctx){
               const A=(sv.batch||{})[rn]||0;
               if(prod>1e-12 && A>0) (sawSpans=sawSpans||[]).push({r:rn, off:durS-ts, dur:ts, rs:prod, A});
             });
+            if(stepSegs) stepSegs.push({t1:t+durS, stock:Object.assign({},stk), rec:reproRecRate(sv),
+              warns:Object.keys(exhausted).sort((a,b2)=>rpResOrderIdx(a)-rpResOrderIdx(b2))});   
           }
           if(needR<=1e-9) break;
         }
@@ -3339,6 +3346,7 @@ function simTimeline(ctx){
       if(rc && rc.state.supplies>0){ rc.state.supplies--; rc.state.vouchers++; }   
       steps.push({i, gain, rate, target, dur, t0:t-dur, t1:t, warns, cumIn, cumPaid,
                   bonus:(i>=10&&i%5===0), stock:Object.assign({},stock),        
+                  segs:stepSegs,                                                
                   relics:rc?reproRelicSnap(stock, rc):null,                     
                   recRate:(rc&&lastSv)?reproRecRate(lastSv):null,               
                   netStep, parts, isHist:!!hist, saw:sawSpans||[],
@@ -3607,7 +3615,7 @@ function simTimeline(ctx){
 let reproSeed=1+Math.floor(Math.random()*99999);   
 
 
-const CALC_VER="1.1.0", CALC_GAME_VER="0.19.0", CALC_BUILD="2026-07-11";   
+const CALC_VER="1.2.0", CALC_GAME_VER="0.19.0", CALC_BUILD="2026-07-11";   
 try{ const ve=document.getElementById("calc-ver");
   if(ve) ve.textContent=`v${CALC_VER}／ゲーム ver ${CALC_GAME_VER} 準拠${CALC_BUILD.indexOf("__")===0?"（dev）":`（build ${CALC_BUILD}）`}`;
 }catch(e){}
@@ -4303,7 +4311,17 @@ function reproCtx(){
 
 function reproAllocPrioKeys(){
   const have=reproOwnedPlanKeys();
-  const nodesByK={}; have.forEach(k=>nodesByK[k]=reproPlannedNodes(k).nodes);   
+  
+  
+  
+  
+  
+  const cells0=reproCells();
+  const nodesByK={}; have.forEach(k=>{
+    const planned=reproPlannedNodes(k).nodes, orig=(cells0[k]||{}).nodes||{}, u={};
+    Object.keys(orig).forEach(tp=>{ if((orig[tp]|0)>0) u[tp]=Math.max(orig[tp]|0, planned[tp]|0); });
+    Object.keys(planned).forEach(tp=>{ if((planned[tp]|0)>0) u[tp]=Math.max(u[tp]|0, planned[tp]|0); });
+    nodesByK[k]=u; });
   const valid=new Set();
   have.forEach(k=>{ const a=reproAllocMap[k]||{}, nn=nodesByK[k]||{};
     Object.keys(a).forEach(tp=>{ if(reproKfMax(a[tp])>0 && (nn[tp]|0)>0) valid.add(k+"|"+tp); }); });   
@@ -4357,6 +4375,19 @@ function reproFillAt(rp, t){
   if(!rp||!rp.fillLog||!rp.fillLog.length) return null;
   let fl=null; for(const e of rp.fillLog){ if(e.t<=t+1e-9) fl=e; else break; }
   return fl||rp.fillLog[0];
+}
+
+
+
+
+function reproSegAt(st, cur){
+  const gs=st&&st.segs; if(!gs||!gs.length) return null;
+  let t0=st.t0||0, prev=null;
+  for(let i2=0;i2<gs.length;i2++){ const g=gs[i2];
+    if(cur<g.t1-1e-9 || i2===gs.length-1)
+      return {t0, dur:Math.max(1e-9, g.t1-t0), stock:g.stock||{}, prevStock:prev, rec:g.rec, warns:g.warns||[]};
+    t0=g.t1; prev=g.stock; }
+  return null;
 }
 
 
@@ -5050,7 +5081,15 @@ function renderRepro(){
       +`<label class="rp-check" title="在庫が切れた資源は供給に合わせて生産を頭打ちにします（OFF=楽観値）"><input id="rpr-strict" type="checkbox" checked> 📉在庫切れで律速</label>`
       +`<label class="rp-check" title="大きな数値を 1.0k / 1.0M のように短く表示します"><input id="rpr-numshort" type="checkbox"${reproNumShort?" checked":""}> 🔢簡易表記(1.0k)</label>`
       +`<span class="mi" id="rpr-info"></span>`;
-    ["rpr-diff-sel","rpr-strict"].forEach(id=>{ const el=document.getElementById(id); if(el) el.onchange=renderRepro; });
+    
+    
+    
+    { const de2=document.getElementById("rpr-diff-sel");
+      if(de2){ de2.onfocus=()=>{ de2.dataset.prev=de2.value; };
+        de2.onchange=()=>{
+          if(!reproPastEditGuard(0)){ if(de2.dataset.prev!=null) de2.value=de2.dataset.prev; renderRepro(); return; }
+          de2.dataset.prev=de2.value; renderRepro(); }; } }
+    { const st2=document.getElementById("rpr-strict"); if(st2) st2.onchange=renderRepro; }
     const nsEl=document.getElementById("rpr-numshort");
     if(nsEl) nsEl.onchange=()=>{ reproNumShort=nsEl.checked; renderRepro(); };
   }
@@ -5530,7 +5569,10 @@ function renderRepro(){
   let curRec={}, curStep=null;
   if(sim&&sim.steps.length){ let ci=sim.steps.findIndex(s=>reproCursor<s.t1-1e-9); if(ci<0) ci=sim.steps.length-1;
     curStep=sim.steps[ci]||null;
-    curRec=(curStep&&curStep.recRate)||{}; }
+    
+    
+    const segR=reproSegAt(curStep, reproCursor);
+    curRec=(segR&&segR.rec)||(curStep&&curStep.recRate)||{}; }
   
   
   
@@ -5738,10 +5780,20 @@ function renderRepro(){
         ? (()=>{ const a0=base0("現金"), b0=(st.stock&&st.stock["現金"])||0, f=Math.min(1, dt/Math.max(st.dur||1e-9,1e-9)); return a0+(b0-a0)*f; })()
         : base0("現金")+(isFinite(st.rate)?(st.rate||0)*dt:0);
       
+      
+      
+      const segC=reproSegAt(st, cur);
+      const stkAt=r=>{
+        if(!segC){ const nr=((st.netStep||{})[r]||0);
+          return {v:Math.max(0, base0(r)+nr*dt), nr, lim:(st.warns||[]).includes(r)}; }
+        const a=segC.prevStock?(segC.prevStock[r]||0):base0(r);
+        const nr=(((segC.stock[r]||0)-a)/segC.dur);
+        const dtg=Math.min(Math.max(0, cur-segC.t0), segC.dur);
+        return {v:Math.max(0, a+nr*dtg), nr, lim:segC.warns.includes(r)};
+      };
+      
       const stks=RP_RESOURCES.filter(r=>r!=="現金").map(r=>{
-        const nr=((st.netStep||{})[r]||0);
-        const v=Math.max(0, base0(r)+(nr*dt));
-        const lim=(st.warns||[]).includes(r);
+        const {v, nr, lim}=stkAt(r);
         const rcls=nr<-1e-9?"neg":nr>1e-9?"pos":"";
         const rtxt=Math.abs(nr)>1e-9?`${nr>0?"+":""}${fmtRate(nr)}/s${lim?"📉":""}`:"";
         return `<span class="rpr-big${v<0.5?" zero":""}" title="${esc(r)} ${fmt(Math.floor(v))}${rtxt?`（${rtxt}）`:""}">`
@@ -5830,8 +5882,7 @@ function renderRepro(){
         }).filter(Boolean).join(""):"";
         
         const stkH=RP_RESOURCES.filter(r=>r!=="現金").map(r=>{
-          const v=Math.max(0, base0(r)+(((st.netStep||{})[r]||0)*dt)); if(v<0.5) return "";
-          const lim=(st.warns||[]).includes(r);
+          const {v, lim}=stkAt(r); if(v<0.5) return "";
           return `<span class="hg" title="${esc(r)} ${fmt(Math.floor(v))}${lim?"（📉在庫切れ律速）":""}">${icon(r)}<b>${fmt(Math.floor(v))}</b>${lim?"📉":""}</span>`;
         }).filter(Boolean).join("");
         
