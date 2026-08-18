@@ -871,8 +871,8 @@ const SAMPLE = {
       desc:"買取の建材が1以上なら 建材 +3",
       effects:{ ops:[{target:"sell",op:"add",name:"建材",value:3,condMin:1}] } },
     { id:"gensanchi", name:"原産地表記", source:"ルシファー", rarity:"コモン", scope:"all",
-      desc:"買取の現金以外 各 +2（全資源は対象外）",
-      effects:{ ops:[{target:"sell",op:"add",category:"non_cash",value:2}] } },
+      desc:"買取の現金以外 各 +1（全資源は対象外）",
+      effects:{ ops:[{target:"sell",op:"add",category:"non_cash",value:1}] } },
     { id:"kensa", name:"検査証封入", source:"ルシファー", rarity:"アンコモン", scope:"all",
       desc:"買取の現金が1以上なら 現金 +1",
       effects:{ ops:[{target:"sell",op:"add",name:"現金",value:1,condMin:1}] } },
@@ -2617,7 +2617,7 @@ const DF_DECK=[
   {r:0, p:"サタン", n:"装填：コンバートルビー", u:1, s:"", d:"杖スキル変更：対象の採掘ポイントをルビー鉱石にする"},
   {r:0, p:"ルシファー", n:"ブリリアントヒット", u:1, s:"pact_brilliant", d:"採掘量2倍：アメジスト鉱脈・ジェード鉱脈・コバルト鉱脈・ルビー鉱脈"},
   {r:0, p:"ルシファー", n:"高熱処理", u:1, s:"kounetsu", d:"アイテム価格変更：建材+3（建材1以上のアイテムのみ）"},
-  {r:0, p:"ルシファー", n:"原産地表記", u:1, s:"gensanchi", d:"アイテム価格変更：建材食料品高級品肥料薬品魔力燃料の価格 +2"},
+  {r:0, p:"ルシファー", n:"原産地表記", u:1, s:"gensanchi", d:"アイテム価格変更：建材食料品高級品肥料薬品魔力燃料の価格 +1"},
   {r:0, p:"ルシファー", n:"装填：ダウジング", u:1, s:"", d:"杖スキル変更：対象の採掘ポイントを鉄鉱脈・硫黄鉱脈・辰砂鉱脈・岩塩鉱脈・金鉱脈のうちランダムな1つに変換する"},
   {r:0, p:"ルシファー", n:"装填：コンバートジェード", u:1, s:"", d:"杖スキル変更：対象の採掘ポイントをヒスイ鉱石にする"},
   {r:0, p:"レヴィアタン", n:"プラシーボ", u:1, s:"placebo", d:"コバルト・アルカリ原液・アルカリ結晶の薬品+3"},
@@ -3287,7 +3287,7 @@ function simTimeline(){
 }
 
 
-const CALC_VER="2.0.0", CALC_GAME_VER="0.20.0", CALC_BUILD="2026-07-25";   
+const CALC_VER="2.1.0", CALC_GAME_VER="0.20.0", CALC_BUILD="2026-08-18";   
 try{ const ve=document.getElementById("calc-ver");
   if(ve) ve.textContent=`v${CALC_VER}／ゲーム ver ${CALC_GAME_VER} 準拠${CALC_BUILD.indexOf("__")===0?"（dev）":`（build ${CALC_BUILD}）`}`;
 }catch(e){}
