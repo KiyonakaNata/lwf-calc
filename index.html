@@ -165,6 +165,7 @@
   .it-nm{font-weight:600; white-space:nowrap;}
   .it-nm .cat{font-size:10px; padding:1px 5px; border-radius:3px; background:var(--line); color:var(--sub); margin-left:4px; font-weight:400;}
   .it-nm .cat.bd{background:#3a3320; color:#e0c890;}
+  .it-nm .cat.px{background:var(--accent-bg); color:var(--accent);}
   .it-chips{display:flex; flex-wrap:wrap; gap:2px 7px;}
   .it-chip{white-space:nowrap; font-variant-numeric:tabular-nums;}
   .base{color:var(--sub);}
@@ -652,8 +653,8 @@ const SAMPLE = {
       desc:"解禁：化学反応（スライムが材料なしで生産・15秒で×5）のレシピを追加。化学反応は注文で使う資源で、売却収入にはなりません", effects:{ ops:[] } },
     { id:"pact_litmus", name:"高濃度薬品の売却", source:"レヴィアタン", rarity:"レア", scope:"all", stack:false, grants:{relic:"relic_litmus",per:3},
       desc:"リトマス紙レリックを3個入手（レア以上＝1回のみ。注文入手ぶんは下の別枠で加算）", effects:{ ops:[] } },
-    { id:"kishaku", name:"希釈", source:"レヴィアタン", rarity:"エピック", scope:"familiar:スライム", stack:false, availOnly:true,
-      desc:"スライム 製造数 x3 / 買取の現金以外 x0.5（1回のみ）※取得より後に解禁したレシピには乗りません",
+    { id:"kishaku", name:"希釈", source:"レヴィアタン", rarity:"エピック", scope:"familiar:スライム", stack:false, availOnly:true, sellScope:"familiar:スライム",
+      desc:"スライム 製造数 x3 / 買取の現金以外 x0.5（1回のみ）※買取は「そのとき スライムが作れるアイテム」の価格が下がるので、同じアイテムを他の使い魔で作っても下がったままです。取得より後に解禁したレシピには乗りません",
       effects:{ ops:[{target:"output",op:"mul",value:3},{target:"sell",op:"mul",category:"non_cash",value:0.5}] } },
     { id:"pact_chikasui", name:"地下水凝固", source:"レヴィアタン", rarity:"エピック", scope:"familiar:スライム",
       desc:"未召喚の水流コンベアを全消費し、消費数×0.5%ぶんスライムの作業速度が上がる（加算）回数欄に消費した水流コンベアの数を入れてください（契約自体は1回のみ）",
@@ -679,8 +680,8 @@ const SAMPLE = {
     { id:"overheat", name:"オーバーヒート", source:"サタン", rarity:"アンコモン", scope:"familiar:サラマンダー",
       desc:"サラマンダー 材料 燃料 x4 / 製造数 x2",
       effects:{ ops:[{target:"material",op:"mul",name:"燃料",value:4},{target:"output",op:"mul",value:2}] } },
-    { id:"assyuku", name:"圧縮", source:"サタン", rarity:"レア", scope:"familiar:サラマンダー", stack:false, availOnly:true,
-      desc:"サラマンダー 所要時間 x2 / 材料 x2 / 買取 x3（1回のみ）※取得より後に解禁したレシピには乗りません",
+    { id:"assyuku", name:"圧縮", source:"サタン", rarity:"レア", scope:"familiar:サラマンダー", stack:false, availOnly:true, sellScope:"familiar:サラマンダー",
+      desc:"サラマンダー 所要時間 x2 / 材料 x2 / 買取 x3（1回のみ）※買取は「そのとき サラマンダーが作れるアイテム」の価格が上がるので、同じアイテムを他の使い魔で作っても上がったままです。取得より後に解禁したレシピには乗りません",
       effects:{ ops:[{target:"time",op:"mul",value:2},{target:"material",op:"mul",value:2},{target:"sell",op:"mul",value:3}] } },
     { id:"motto", name:"もっと作れ", source:"サタン", rarity:"レア", scope:"all", stack:false,
       desc:"材料 x2 / 製造数 x2（1回のみ）",
@@ -1299,6 +1300,17 @@ function applyOp(op, item, st, materials, sell, emptyBase){
   }
 }
  
+function itemMadeByAt(scope, itemName, k){
+  return DATA.items.some(r=>{
+    if(r.name!==itemName || !applicable({scope}, r)) return false;
+    if(r.board && !boardSel[r.id]) return false;          
+    const up=DATA.skills.find(sk=>sk.kind==="unlock" && sk.unlocks===r.id);
+    if(!up) return true;                                  
+    const i=order.indexOf(up.id);
+    return i>=0 && i<k;                                   
+  });
+}
+ 
 function compute(item){
   const st={ out:item.output, time:item.time, spdAdd:0 };
   const materials=item.materials.map(m=>({name:m.name, base:m.qty, val:m.qty}));
@@ -1316,16 +1328,25 @@ function compute(item){
   
   const unlockPact=DATA.skills.find(x=>x.kind==="unlock" && x.unlocks===item.id);
   let unlocked=!unlockPact;               
-  const seenOnce=new Set(), skipped=[];
-  order.forEach(id=>{
+  const seenOnce=new Set(), skipped=[], crossSell=[];
+  order.forEach((id,k)=>{
     const s=DATA.skills.find(x=>x.id===id);
     if(!s || s.relicDef) return;            
     if(s.kind==="unlock"){ if(s.unlocks===item.id) unlocked=true; return; }
     if(s.stack===false){ if(seenOnce.has(id)) return; seenOnce.add(id); }   
-    if(!applicable(s,item)) return;
-    if(s.availOnly && !unlocked){ if(!skipped.includes(s.name)) skipped.push(s.name); return; }
     const ops=(s.effects && s.effects.ops)||[];
-    ops.forEach(op=>applyOp(op, item, st, materials, sell, emptyBase));
+    
+    
+    const sellItemOK = s.sellScope ? itemMadeByAt(s.sellScope, item.name, k) : null;
+    const recipeOK = applicable(s,item) && !(s.availOnly && !unlocked);
+    if(s.availOnly && !unlocked && applicable(s,item) && !skipped.includes(s.name)) skipped.push(s.name);
+    ops.forEach(op=>{
+      const ok = (op.target==="sell" && sellItemOK!==null) ? sellItemOK : recipeOK;
+      if(!ok) return;
+      
+      if(op.target==="sell" && sellItemOK && !recipeOK && !crossSell.includes(s.name)) crossSell.push(s.name);
+      applyOp(op, item, st, materials, sell, emptyBase);
+    });
   });
   
   
@@ -1343,6 +1364,7 @@ function compute(item){
   const spd=1+Math.max(0, st.spdAdd||0);
   return {
     skipped,                                  
+    crossSell,                                
     output: st.out, time: spd>1 ? st.time/spd : st.time,
     materials: materials.map(m=>({name:m.name, base:m.base, val:Math.max(0,m.val)})),
     sell:      sell.map(s=>({name:s.name, base:s.base, val:Math.max(0,s.val)}))
@@ -2037,10 +2059,13 @@ function renderItems(){
       const thr=(ri && ri.f<1-1e-9)
         ? `<span class="warn" title="材料の供給不足で稼働 ×${fmtMul(ri.f)} に絞られています（不足: ${ri.shorts.join("・")}。上のΣ集計と🔗チェック参照）">⚠×${fmtMul(ri.f)}</span>` : "";
       
+      
+      const xsl=(r.crossSell && r.crossSell.length)
+        ? `<span class="cat px" title="${r.crossSell.join("・")}でこのアイテムの買取価格そのものが変わっています（別の使い魔のレシピでも同じ価格。このレシピの製造時間・材料には掛かりません）">${r.crossSell.join("・")}</span>` : "";
       const skp=(r.skipped && r.skipped.length)
         ? `<span class="warn" title="${r.skipped.join("・")}を取った時点でこのレシピは未解禁で補正が乗りません">⏳${r.skipped.join("・")}なし</span>` : "";
       html+=`<tr class="${changed?"changed":""} ${item.board?"boardrow":""} ${(showPlacedTotal&&n<=0)?"zerorow":""}">`
-        +`<td><span class="it-nm" title="${(item.unlock?`解放: ${item.unlock}`:"初期解放").replace(/"/g,"&quot;")}">${nm(item.name)}${item.cat==="バフ"?'<span class="cat">バフ</span>':""}${item.board?`<span class="cat bd">看板</span>`:""}${thr}${skp}</span></td>`
+        +`<td><span class="it-nm" title="${(item.unlock?`解放: ${item.unlock}`:"初期解放").replace(/"/g,"&quot;")}">${nm(item.name)}${item.cat==="バフ"?'<span class="cat">バフ</span>':""}${item.board?`<span class="cat bd">看板</span>`:""}${thr}${skp}${xsl}</span></td>`
         +`<td class="num"><span class="placed"><button data-pl="dec" data-id="${item.id}">−</button><span class="pn ${n>0?"on":""}">${n}</span><button data-pl="inc" data-id="${item.id}">＋</button></span></td>`
         +`<td class="num">${valCell("output",item.output,r.output,"",true)}</td>`
         +`<td class="num">${valCell("time",item.time,r.time,"",true)}</td>`
@@ -2141,7 +2166,7 @@ document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
 });
 
  
-const CALC_VER="3.0.0", CALC_GAME_VER="0.24.0", CALC_BUILD="2026-08-26";   
+const CALC_VER="3.1.0", CALC_GAME_VER="0.24.0", CALC_BUILD="2026-08-26";   
 try{ const ve=document.getElementById("calc-ver");
   if(ve) ve.textContent=`v${CALC_VER}／ゲーム ver ${CALC_GAME_VER} 準拠${CALC_BUILD.indexOf("__")===0?"（dev）":`（build ${CALC_BUILD}）`}`;
 }catch(e){}
