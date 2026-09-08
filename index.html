@@ -710,8 +710,8 @@ const SAMPLE = {
       raven:{spdAdd:1, rangeMul:2},
       desc:"運送レイヴンの作業速度 +100%・移動範囲 ×2（再利用不可。下の運搬凡例のレイヴン性能に反映）", effects:{ ops:[] } },
     { id:"pact_hellremodel", name:"地獄改造論", source:"マモン", rarity:"エピック", scope:"all", stack:false,
-      raven:{spdAdd:9, pickMul:10},
-      desc:"運送レイヴンの作業速度 +900%・同時に拾うアイテム数 ×10（ペナルティの土地価格+10Kは計算対象外。下の運搬凡例に反映）", effects:{ ops:[] } },
+      raven:{spdAdd:9},
+      desc:"運送レイヴンの作業速度 +900%・同時に拾うアイテム数 ×10（拾う数はレイヴンが持てる50個で頭打ちなので、運搬量は速度ぶんだけ増えます。ペナルティの土地価格+10Kは計算対象外）", effects:{ ops:[] } },
     { id:"unlock_stamp", name:"偽造印鑑", source:"マモン", rarity:"レジェンダリー", scope:"all", stack:false, kind:"unlock", unlocks:"keiyaku",
       desc:"解禁：契約権（スライムが高級品10Kと現金100から生産）のレシピを追加（ペナルティの前科(虚偽契約)は計算対象外）", effects:{ ops:[] } },
 
@@ -877,7 +877,7 @@ const SAMPLE = {
     { p:"マモン", r:2, u:0, n:"密輸", cat:"経済", d:"60秒ごとに土地所有数 x5の収賄を得る" },
     { p:"マモン", r:3, u:0, n:"地面師", cat:"経済", d:"土地所持数の2乗 x100の現金を手に入れる。土地価格 x5" },
     { p:"マモン", r:3, u:0, n:"カスタマーサポートセンター", cat:"経済", d:"次回以降すべての契約オファーで「選択スキップ」を契約「鬼電」に置き換える" },
-    { p:"マモン", r:3, u:0, n:"地獄改造論", s:"pact_hellremodel", d:"運送レイヴンの作業速度 +900%、同時に拾うアイテム数 x10（運搬凡例に反映）土地価格 +10K（計算対象外）" },
+    { p:"マモン", r:3, u:0, n:"地獄改造論", s:"pact_hellremodel", d:"運送レイヴンの作業速度 +900%、同時に拾うアイテム数 x10（持てる量は50個のままなので運搬量は速度ぶんだけ増える）土地価格 +10K（計算対象外）" },
     { p:"マモン", r:4, u:0, n:"偽造印鑑", s:"unlock_stamp", d:"スライムレシピ解禁：契約権。同時にペナルティ前科（虚偽契約）1点が課される" },
     { p:"レヴィアタン", r:0, u:1, n:"埋設手形", cat:"経済", d:"入手：埋設手形 x3（土地購入で価格の50%ぶんの、開発スポンサーに対応する各資源を入手。ゲヘナは対象外）" },
     { p:"レヴィアタン", r:0, u:1, n:"プラシーボ", s:"placebo", d:"コバルト・アルカリ原液・アルカリ結晶の薬品+3" },
@@ -1488,7 +1488,6 @@ function ravenStats(){
   DATA.skills.forEach(s=>{ if(!s.raven) return; const c=counts[s.id]||0; if(c<=0) return;
     const n=(s.stack===false)?1:c;
     spdAdd+=(s.raven.spdAdd||0)*n;
-    if(s.raven.pickMul) pick*=Math.pow(s.raven.pickMul,n);
     if(s.raven.rangeMul) range*=Math.pow(s.raven.rangeMul,n);
   });
   if(rpPerkOn("perk_raven1s")) spdAdd+=1;   
@@ -2190,7 +2189,7 @@ document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
 });
 
  
-const CALC_VER="3.2.0", CALC_GAME_VER="0.27.0", CALC_BUILD="2026-09-05";   
+const CALC_VER="3.3.0", CALC_GAME_VER="0.27.0", CALC_BUILD="2026-09-08";   
 try{ const ve=document.getElementById("calc-ver");
   if(ve) ve.textContent=`v${CALC_VER}／ゲーム ver ${CALC_GAME_VER} 準拠${CALC_BUILD.indexOf("__")===0?"（dev）":`（build ${CALC_BUILD}）`}`;
 }catch(e){}
