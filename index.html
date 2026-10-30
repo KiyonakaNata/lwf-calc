@@ -433,7 +433,7 @@ const SAMPLE = {
       sell:[{name:"燃料",qty:2000},{name:"現金",qty:500}], slots:2, unlock:"サタン「重金属と軽金属」(Epic)" },
     { id:"mythril", name:"ミスリル", familiar:"サラマンダー", cat:"アイテム",
       output:100, time:12, materials:[{name:"鉄インゴット",qty:8},{name:"水銀",qty:8},{name:"金インゴット",qty:8},{name:"燃料",qty:160}],
-      sell:[{name:"現金",qty:3}], slots:3, unlock:"サタン「重金属と軽金属」(Epic)" },
+      sell:[{name:"現金",qty:1},{name:"現金",qty:1},{name:"現金",qty:1}], slots:3, unlock:"サタン「重金属と軽金属」(Epic)" },
     { id:"orichalcum", name:"オリハルコン", familiar:"サラマンダー", cat:"アイテム",
       output:1, time:12, materials:[{name:"ミスリル",qty:100},{name:"アダマンタイト",qty:1},{name:"燃料",qty:10000}],
       sell:[{name:"全資源",qty:10000},{name:"燃料",qty:10000},{name:"現金",qty:10000}], slots:3, unlock:"サタン「最も軽く最も重い金属」(Legendary)" },
@@ -463,7 +463,7 @@ const SAMPLE = {
       sell:[{name:"現金",qty:1}], unlock:"ベルフェゴール「スリ」(Rare)" },
     { id:"mythril_rsf", name:"ミスリル", familiar:"ウィッチ", cat:"アイテム",
       output:5, time:15, materials:[{name:"刻印コバルト",qty:1},{name:"刻印ルビー",qty:1},{name:"刻印アメジスト",qty:1},{name:"刻印ジェード",qty:1}],
-      sell:[{name:"現金",qty:3}], slots:3, unlock:"ベルフェゴール「ロイヤルストレートフラッシュ」(Epic)" },
+      sell:[{name:"現金",qty:1},{name:"現金",qty:1},{name:"現金",qty:1}], slots:3, unlock:"ベルフェゴール「ロイヤルストレートフラッシュ」(Epic)" },
 
      
     { id:"buff_cobalt", name:"刻印コバルト", familiar:"ウィッチ", cat:"バフ",
@@ -559,7 +559,7 @@ const SAMPLE = {
     { id:"tr_summonernoneitemruby", name:"魔力", familiar:"ウィッチ", cat:"アイテム", output:1, time:1, materials:[{name:"ルビー",qty:1}], sell:[], board:"ベルフェゴール", boardLv:"1", unlock:"依頼看板：ベルフェゴール（コモン）" },
     { id:"tr_summonernoneitemamethyst", name:"魔力", familiar:"ウィッチ", cat:"アイテム", output:1, time:1, materials:[{name:"アメジスト",qty:1}], sell:[], board:"ベルフェゴール", boardLv:"1", unlock:"依頼看板：ベルフェゴール（コモン）" },
     { id:"tr_summoneradamantite", name:"アダマンタイト", familiar:"ウィッチ", cat:"アイテム", output:10, time:15, materials:[{name:"鍛冶師サラマンダー",qty:1},{name:"採掘ゴブリン",qty:1},{name:"マジックペレット",qty:1}], sell:[{name:"燃料",qty:2000},{name:"現金",qty:500}], slots:2, board:"ベルフェゴール", boardLv:"4", unlock:"依頼看板：ベルフェゴール（エピック）" },
-    { id:"tr_summonermythril", name:"ミスリル", familiar:"ウィッチ", cat:"アイテム", output:10, time:15, materials:[{name:"蒸留スライム",qty:1},{name:"運送レイヴン",qty:1},{name:"マジックペレット",qty:1}], sell:[{name:"現金",qty:3}], slots:3, board:"ベルフェゴール", boardLv:"4", unlock:"依頼看板：ベルフェゴール（エピック）" },
+    { id:"tr_summonermythril", name:"ミスリル", familiar:"ウィッチ", cat:"アイテム", output:10, time:15, materials:[{name:"蒸留スライム",qty:1},{name:"運送レイヴン",qty:1},{name:"マジックペレット",qty:1}], sell:[{name:"現金",qty:1},{name:"現金",qty:1},{name:"現金",qty:1}], slots:3, board:"ベルフェゴール", boardLv:"4", unlock:"依頼看板：ベルフェゴール（エピック）" },
     { id:"tr_summonergempowderintervalmagic", name:"水晶玉", familiar:"ウィッチ", cat:"バフ", output:1, time:60, materials:[{name:"宝石粉",qty:1}], sell:[], board:"ベルフェゴール", boardLv:"2", unlock:"依頼看板：ベルフェゴール（アンコモン）" },
     { id:"tr_summonemercuryintervalmagic", name:"水晶玉", familiar:"ウィッチ", cat:"バフ", output:1, time:60, materials:[{name:"水銀",qty:1}], sell:[], board:"ベルフェゴール", boardLv:"2", unlock:"依頼看板：ベルフェゴール（アンコモン）" },
     { id:"tr_summonesalefam2", name:"派遣実績", familiar:"ウィッチ", cat:"バフ", output:1, time:15, materials:[{name:"採掘ゴブリン",qty:2}], sell:[], board:"ベルフェゴール", boardLv:"3", unlock:"依頼看板：ベルフェゴール（レア）" },
@@ -2159,14 +2159,16 @@ function renderItems(){
           ? `<span class="it-chip" title="${m.name}: 1回あたり ${fmt(m.val)} 個（基礎 ${fmt(m.base)}）${mul!==1?`／表示は配置${n}台ぶんの合計`:""}">${icon(m.name)}${rateCell("material",rb,rv,true)}</span>`
           : `<span class="it-chip" title="${m.name} 消費 ${fmtRate(rv)}/s（基礎 ${fmtRate(rb)}）">${icon(m.name)}${valCell("material",m.base,m.val,"",true)}</span>`;
       }).join(""):`<span class="base">なし</span>`;
-      const sellChips=r.sell.length?r.sell.map(s=>{
+      
+      const sellMerged=[]; r.sell.forEach(s=>{ const e=sellMerged.find(x=>x.name===s.name); if(e){ e.base+=s.base; e.val+=s.val; } else sellMerged.push({name:s.name, base:s.base, val:s.val}); });
+      const sellChips=sellMerged.length?sellMerged.map(s=>{
         const rb=s.base*item.output/item.time*mul, rv=s.val*r.output/r.time*mul;
         return showMatRate
           ? `<span class="it-chip" title="${s.name}: 1回あたり ${fmt(s.val)}（基礎 ${fmt(s.base)}）× 製造数${fmt(r.output)}${mul!==1?`／表示は配置${n}台ぶんの合計`:""}">${icon(s.name)}${rateCell("sell",rb,rv,true)}</span>`
           : `<span class="it-chip" title="${s.name} 取得 ${fmtRate(rv)}/s（基礎 ${fmtRate(rb)}）">${icon(s.name)}${valCell("sell",s.base,s.val,"",true)}</span>`;
       }).join(""):`<span class="base">なし</span>`;
       const matMap={}; r.materials.forEach(m=>matMap[m.name]=m);
-      const shared=r.sell.filter(s=>matMap[s.name]);
+      const shared=sellMerged.filter(s=>matMap[s.name]);
       const netChips=shared.length?shared.map(s=>{
         const m=matMap[s.name];
         const nb=(s.base*item.output-m.base)/item.time*mul, nv=(s.val*r.output-m.val)/r.time*mul;
@@ -2288,7 +2290,7 @@ document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
 });
 
  
-const CALC_VER="3.4.1", CALC_GAME_VER="0.30.1", CALC_BUILD="2026-10-26";   
+const CALC_VER="3.5.0", CALC_GAME_VER="0.30.1", CALC_BUILD="2026-10-30";   
 try{ const ve=document.getElementById("calc-ver");
   if(ve) ve.textContent=`v${CALC_VER}／ゲーム ver ${CALC_GAME_VER} 準拠${CALC_BUILD.indexOf("__")===0?"（dev）":`（build ${CALC_BUILD}）`}`;
 }catch(e){}
